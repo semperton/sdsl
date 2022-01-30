@@ -1,0 +1,24 @@
+{
+    "name": "semperton/sdsl",
+    "description": "Simple DSL for search queries.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Johannes Rabausch",
+            "email": "mail@jrabausch.de"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Semperton\\Sdsl\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": "phpunit tests"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "vimeo/psalm": "^4.19"
+    }
+}
