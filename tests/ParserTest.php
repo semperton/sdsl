@@ -11,7 +11,7 @@ final class ParserTest extends TestCase
 	{
 		$this->doesNotPerformAssertions();
 
-		$query = "(id eq 55)";
+		$query = "(id:eq:55)and((id:eq:32)or(name:like:'John'))";
 		$data = Parser::parse($query);
 
 		var_dump($data);
