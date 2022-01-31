@@ -11,9 +11,18 @@ final class ParserTest extends TestCase
 	{
 		$this->doesNotPerformAssertions();
 
-		$query = "(id:eq:55)and((id:eq:32)or(name:like:'John'))";
-		$data = Parser::parse($query);
+		$dsl = "(id:eq:55)and((id:eq:32)or(name:like:'John'))";
+		$query = Parser::parse($dsl);
+		$json = json_encode($query, JSON_PRETTY_PRINT);
+		// var_dump($json);
 
-		var_dump($data);
+		$dsl = "(id:gte:1)or()";
+		$query = Parser::parse($dsl);
+		$json = json_encode($query, JSON_PRETTY_PRINT);
+		var_dump($json);
+
+		// foreach($query as $con => $entry){
+		// 	var_dump($con, $entry);
+		// }
 	}
 }

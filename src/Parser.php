@@ -14,7 +14,7 @@ final class Parser
 	protected $tokens;
 
 	/** @var ArrayObject<int, mixed> */
-	protected $filter;
+	protected $data;
 
 	/** @var int */
 	protected $depth;
@@ -39,18 +39,19 @@ final class Parser
 
 	protected function __construct(string $str, int $depth)
 	{
-		$this->tokens = $this->tokenize($str);
 		/** @var ArrayObject<int, mixed> */
-		$this->filter = new ArrayObject();
+		$this->data = new ArrayObject();
 		$this->depth = $depth;
+		$this->tokens = $this->tokenize($str);
 	}
 
-	public static function parse(string $str, int $depth = 3): ArrayObject
+	public static function parse(string $str, int $depth = 3): Query
 	{
 		$parser = new self($str, $depth);
-		$result = $parser->process();
 
-		return $result;
+		$data = $parser->process();
+
+		return new Query($data);
 	}
 
 	protected function process(): ArrayObject
@@ -89,24 +90,24 @@ final class Parser
 					}
 
 					if (count($this->levels) >= $this->depth) {
-						throw new RuntimeException('Maximum filter depth reached');
+						throw new RuntimeException('Maximum depth reached');
 					}
 
 					if ($this->part === '') { // implicit and
 						$this->part = 'and';
 					} else if ($this->part !== 'and' && $this->part !== 'or') {
-						throw new RuntimeException('Invalid filter connection provided');
+						throw new RuntimeException('Invalid connection provided');
 					}
 
-					$this->filter->append($this->part);
+					$this->data->append($this->part);
 					$this->part = '';
 
-					$this->levels[] = $this->filter;
+					$this->levels[] = $this->data;
 
 					/** @var ArrayObject<int, mixed> */
-					$filter = new ArrayObject();
-					$this->filter->append($filter);
-					$this->filter = $filter;
+					$data = new ArrayObject();
+					$this->data->append($data);
+					$this->data = $data;
 					break;
 				case ')':
 
@@ -129,9 +130,9 @@ final class Parser
 						$this->values = [];
 					}
 
-					// $this->filter[] = $this->inputs;
+					// $this->data[] = $this->inputs;
 					if (!!$this->inputs) {
-						$this->filter->append([
+						$this->data->append((object)[
 							'field' => $this->inputs[0],
 							'operator' => $this->inputs[1],
 							'value' => $this->inputs[2]
@@ -140,7 +141,7 @@ final class Parser
 					}
 
 					/** @var ArrayObject<int, mixed> */
-					$this->filter = array_pop($this->levels);
+					$this->data = array_pop($this->levels);
 					break;
 				case ':':
 					if ($this->inString) {
@@ -155,7 +156,7 @@ final class Parser
 			}
 		}
 
-		return $this->filter;
+		return $this->data;
 	}
 
 	protected function next(): ?string
