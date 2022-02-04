@@ -4,60 +4,35 @@ declare(strict_types=1);
 
 namespace Semperton\Sdsl;
 
-use ArrayObject;
-use IteratorAggregate;
-use JsonSerializable;
 use Generator;
+use IteratorAggregate;
 
-final class Query implements IteratorAggregate, JsonSerializable
+final class Query implements IteratorAggregate
 {
-	/** @var ArrayObject */
-	protected $data;
+	/** @var Container */
+	protected $container;
 
-	public function __construct(ArrayObject $data)
+	public function __construct(Container $container)
 	{
-		$this->data = $data;
+		$this->container = $container;
 	}
 
+	/**
+	 * @return Generator<int, Stringable>
+	 */
 	public function getIterator(): Generator
 	{
-		$connection = '';
-		foreach ($this->data as $entry) {
-
-			if (is_string($entry)) {
-				$connection = $entry;
-				continue;
-			}
-
-			yield $connection => $entry;
-		}
+		return $this->container->getIterator();
 	}
 
-	protected function unfold(ArrayObject $data)
+	public function __toString(): string
 	{
-		$result = [];
+		$str = '';
 
-		foreach ($data as $entry) {
-
-			if ($entry instanceof ArrayObject) {
-				if(count($entry)){
-					$result[] = $this->unfold($entry);
-				}
-			} else {
-				$result[] = $entry;
-			}
+		foreach ($this->container as $entry) {
+			$str .= (string)$entry;
 		}
 
-		return count($result) === 1 ? $result[0] : $result;
-	}
-
-	public function toArray(): array
-	{
-		return $this->unfold($this->data);
-	}
-
-	public function jsonSerialize()
-	{
-		return $this->toArray();
+		return $str;
 	}
 }

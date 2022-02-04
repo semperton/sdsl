@@ -3,26 +3,32 @@
 declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
+use Semperton\Sdsl\Container;
+use Semperton\Sdsl\Content;
 use Semperton\Sdsl\Parser;
 
 final class ParserTest extends TestCase
 {
-	public function testInput(): void
+	public function testParseQuery(): void
 	{
-		$this->doesNotPerformAssertions();
+		$dsl = "(id:gt:5)or(id:in:1,'Te st',5)";
 
-		$dsl = "(id:eq:55)and((id:eq:32)or(name:like:'John'))";
 		$query = Parser::parse($dsl);
-		$json = json_encode($query, JSON_PRETTY_PRINT);
-		// var_dump($json);
+		$this->assertEquals($dsl, (string)$query);
 
-		$dsl = "(id:gte:1)or()";
+		$dsl = "(id:eq:5)((name:like:'John Doe')or(name:like:'Jane (Doe)'))";
+
 		$query = Parser::parse($dsl);
-		$json = json_encode($query, JSON_PRETTY_PRINT);
-		var_dump($json);
+		$this->assertEquals($dsl, (string)$query);
+	}
 
-		// foreach($query as $con => $entry){
-		// 	var_dump($con, $entry);
-		// }
+	public function testBuildQuery(): void
+	{
+		$container = new Container('and');
+		$container->push(new Content(['id', 'in', [1,2,5]]));
+
+		$dsl = "and(id:in:1,2,5)";
+
+		$this->assertEquals($dsl, (string)$container);
 	}
 }

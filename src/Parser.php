@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace Semperton\Sdsl;
 
-use ArrayObject;
 use Generator;
 use Iterator;
 use RuntimeException;
+
+use function abs;
+use function mb_substr;
+use function trim;
+use function count;
+use function array_pop;
 
 final class Parser
 {
@@ -23,10 +28,10 @@ final class Parser
 
 	const TOKEN_STRING_DELIMITER = "'";
 
-	/** @var Generator */
+	/** @var Iterator<int, string> */
 	protected $tokens;
 
-	/** @var ArrayObject<int, mixed> */
+	/** @var Container */
 	protected $data;
 
 	/** @var int */
@@ -35,26 +40,31 @@ final class Parser
 	/** @var string */
 	protected $part = '';
 
-	/** @var array<int, ArrayObject> */
+	/** @var array<int, Container> */
 	protected $levels = [];
 
-	/** @var array */
+	/** @var array<int, string|array<int, string>> */
 	protected $inputs = [];
 
-	/** @var array */
+	/** @var array<int, string> */
 	protected $values = [];
 
 	/** @var bool */
 	protected $inString = false;
 
+	/**
+	 * @param Iterator<int, string> $tokens
+	 */
 	protected function __construct(Iterator $tokens, int $depth)
 	{
-		/** @var ArrayObject<int, mixed> */
-		$this->data = new ArrayObject();
+		$this->data = new Container('');
 		$this->tokens = $tokens;
 		$this->depth = abs($depth);
 	}
 
+	/**
+	 * @return Generator<int, string>
+	 */
 	public static function tokenize(string $str): Generator
 	{
 		$position = 0;
@@ -68,16 +78,14 @@ final class Parser
 		$tokens = self::tokenize(trim($str));
 
 		$parser = new self($tokens, $depth);
-		$data = $parser->process();
+		$container = $parser->process();
 
-		return new Query($data);
+		return new Query($container);
 	}
 
-	protected function process(): ArrayObject
+	protected function process(): Container
 	{
 		while (null !== $token = $this->tokens->current()) {
-
-			/** @var string $token */
 
 			$this->tokens->next();
 
@@ -100,10 +108,12 @@ final class Parser
 				continue;
 			}
 
-			// whitespace
+			// ignore whitespace
 			if (trim($token) === '') {
 				continue;
 			}
+
+			// TODO: validity checks from here (syntax...)
 
 			if (self::TOKEN_STRING_DELIMITER === $token) {
 				$this->inString = !$this->inString;
@@ -126,20 +136,12 @@ final class Parser
 					throw new RuntimeException("Maximum depth of {$this->depth} reached");
 				}
 
-				if ($this->part === '') { // implicit and
-					$this->part = 'and';
-				} else if ($this->part !== 'and' && $this->part !== 'or') {
-					throw new RuntimeException("Invalid connection < {$this->part} > provided");
-				}
-
-				$this->data->append($this->part);
+				$data = new Container($this->part);
 				$this->part = '';
 
+				$this->data->push($data);
 				$this->levels[] = $this->data;
 
-				/** @var ArrayObject<int, mixed> */
-				$data = new ArrayObject();
-				$this->data->append($data);
 				$this->data = $data;
 				continue;
 			}
@@ -161,16 +163,11 @@ final class Parser
 				}
 
 				if (!!$this->inputs) {
-					$expression = new Expression(
-						$this->inputs[0],
-						$this->inputs[1],
-						$this->inputs[2]
-					);
-					$this->data->append($expression);
+					$content = new Content($this->inputs);
+					$this->data->push($content);
 					$this->inputs = [];
 				}
 
-				/** @var ArrayObject<int, mixed> */
 				$this->data = array_pop($this->levels);
 				continue;
 			}
